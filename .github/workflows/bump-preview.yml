@@ -5,9 +5,9 @@ name: Bump preview & verify Cloud deployment
 # (no PR), then track the Cloud deployment that the push triggers. If the
 # deployment fails, the build logs are posted to a Slack monitoring channel.
 #
-# Required configuration (Settings > Secrets and variables > Actions):
-#   Secrets:   MCLOUD_TOKEN, SLACK_WEBHOOK_URL_CLOUD
-#   Variables: CLOUD_TEST_ORG_ID, CLOUD_TEST_PROJECT, CLOUD_TEST_ENVIRONMENT
+# Required configuration (Settings > Secrets and variables > Actions > Secrets):
+#   MCLOUD_TOKEN, SLACK_WEBHOOK_URL_CLOUD,
+#   CLOUD_TEST_ORG_ID, CLOUD_TEST_PROJECT, CLOUD_TEST_ENVIRONMENT
 # CLOUD_TEST_ENVIRONMENT must be the preview environment's handle or `projenv_`
 # id (not its name), and that environment must auto-deploy on push to `preview`.
 # `preview` must allow the workflow to push (no branch protection blocking the
@@ -40,11 +40,11 @@ jobs:
     timeout-minutes: 60
     env:
       MCLOUD_TOKEN: ${{ secrets.MCLOUD_TOKEN }}
-      CLOUD_ORG: ${{ vars.CLOUD_TEST_ORG_ID }}
-      CLOUD_PROJECT: ${{ vars.CLOUD_TEST_PROJECT }}
+      CLOUD_ORG: ${{ secrets.CLOUD_TEST_ORG_ID }}
+      CLOUD_PROJECT: ${{ secrets.CLOUD_TEST_PROJECT }}
       # The environment to build against. Use its handle or `projenv_` id
       # (not its name, which can be ambiguous across environments).
-      CLOUD_ENVIRONMENT: ${{ vars.CLOUD_TEST_ENVIRONMENT }}
+      CLOUD_ENVIRONMENT: ${{ secrets.CLOUD_TEST_ENVIRONMENT }}
     steps:
       - name: Checkout preview
         uses: actions/checkout@v4
@@ -219,8 +219,10 @@ jobs:
           path: backend-build.log
           if-no-files-found: ignore
 
+      # Only alert on an actual tracked deployment failure — not on a
+      # config/setup error before any deployment was resolved.
       - name: Post deployment failure to Slack
-        if: failure()
+        if: failure() && env.BUILD_ID != ''
         env:
           SLACK_WEBHOOK_URL_CLOUD: ${{ secrets.SLACK_WEBHOOK_URL_CLOUD }}
         run: |
