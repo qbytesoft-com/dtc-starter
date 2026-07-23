@@ -11,5 +11,10 @@ echo "--> Step 1: Running Database Migrations..."
 ./node_modules/.bin/medusa db:migrate
 echo "--> Step 1 Complete: Migrations finished successfully!"
 
+if [ ! -f "./.medusa/server/public/index.html" ] && [ ! -f "./.medusa/server/public/admin/index.html" ]; then
+  echo "--> Admin build index.html not found. Building Medusa admin assets..."
+  ./node_modules/.bin/medusa build
+fi
+
 echo "--> Step 2: Starting Medusa Server on port ${PORT:-9000}..."
 exec ./node_modules/.bin/medusa start
