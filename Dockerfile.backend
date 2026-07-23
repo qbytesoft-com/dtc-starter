@@ -5,12 +5,12 @@
 # ---------------------------------------------------------
 # Stage 1: Build Dependencies and Compile Backend
 # ---------------------------------------------------------
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
 # Install system dependencies & pnpm
-RUN apk add --no-cache python3 make g++ git
+RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@10.11.1 --activate
 
 # Copy root monorepo files & workspace config
@@ -30,7 +30,7 @@ RUN pnpm --filter=@dtc/backend build
 # ---------------------------------------------------------
 # Stage 2: Production Runner
 # ---------------------------------------------------------
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 
 WORKDIR /app
 
@@ -44,10 +44,14 @@ ENV HOST=0.0.0.0
 # Copy full monorepo context from builder stage
 COPY --from=builder /app /app
 
-EXPOSE 9000
-
 WORKDIR /app/apps/backend
 
 RUN chmod +x ./entrypoint.sh
 
-ENTRYPOINT ["/bin/sh", "/app/apps/backend/entrypoint.sh"]
+EXPOSE 9000
+
+# Give migrations up to 5 minutes before Docker considers the container unhealthy
+HEALTHCHECK --interval=30s --timeout=10s --start-period=300s --retries=3 \
+  CMD curl -f http://localhost:9000/health || exit 1
+
+ENTRYPOINT ["/bin/bash", "/app/apps/backend/entrypoint.sh"]
