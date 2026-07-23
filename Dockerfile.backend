@@ -10,7 +10,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install system dependencies & pnpm
-RUN apk add --no-libc-compat --no-cache python3 make g++ git
+RUN apk add --no-cache python3 make g++ git
 RUN corepack enable && corepack prepare pnpm@10.11.1 --activate
 
 # Copy root monorepo files & workspace config
