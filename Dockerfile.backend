@@ -1,0 +1,53 @@
+# =========================================================
+# Medusa v2 Backend Dockerfile (pnpm Monorepo Multi-Stage)
+# =========================================================
+
+# ---------------------------------------------------------
+# Stage 1: Build Dependencies and Compile Backend
+# ---------------------------------------------------------
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install system dependencies & pnpm
+RUN apk add --no-libc-compat --no-cache python3 make g++ git
+RUN corepack enable && corepack prepare pnpm@10.11.1 --activate
+
+# Copy root monorepo files & workspace config
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/backend/package.json ./apps/backend/package.json
+COPY apps/storefront/package.json ./apps/storefront/package.json
+
+# Install all workspace dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy project source code
+COPY . .
+
+# Build backend application
+RUN pnpm --filter=@dtc/backend build
+
+# ---------------------------------------------------------
+# Stage 2: Production Runner
+# ---------------------------------------------------------
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+# Install pnpm in runner stage
+RUN corepack enable && corepack prepare pnpm@10.11.1 --activate
+
+ENV NODE_ENV=production
+ENV PORT=9000
+
+# Copy workspace configuration & node_modules from builder
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml /app/turbo.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/backend ./apps/backend
+
+EXPOSE 9000
+
+WORKDIR /app/apps/backend
+
+# Run migrations and start Medusa backend server
+CMD ["sh", "-c", "pnpm medusa db:migrate && pnpm start"]
