@@ -24,6 +24,9 @@ RUN pnpm install --frozen-lockfile
 # Copy project source code
 COPY . .
 
+# Set production environment for medusa build
+ENV NODE_ENV=production
+
 # Build backend application
 RUN pnpm --filter=@dtc/backend build
 
