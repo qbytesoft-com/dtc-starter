@@ -41,9 +41,12 @@ ENV NODE_ENV=production
 ENV PORT=9000
 ENV HOST=0.0.0.0
 
-# Copy full monorepo context to preserve pnpm symlinks and workspace binaries
-COPY --from=builder /app ./
+# Copy full monorepo context from builder stage
+COPY --from=builder /app /app
 
 EXPOSE 9000
 
-CMD ["sh", "-c", "pnpm --filter=@dtc/backend medusa db:migrate && pnpm --filter=@dtc/backend start"]
+WORKDIR /app/apps/backend
+
+# Run migrations and start Medusa backend server
+CMD ["sh", "-c", "pnpm db:migrate && pnpm start"]
