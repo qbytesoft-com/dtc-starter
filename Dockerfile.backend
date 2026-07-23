@@ -50,8 +50,4 @@ RUN chmod +x ./entrypoint.sh
 
 EXPOSE 9000
 
-# Give migrations up to 5 minutes before Docker considers the container unhealthy
-HEALTHCHECK --interval=30s --timeout=10s --start-period=300s --retries=3 \
-  CMD curl -f http://localhost:9000/health || exit 1
-
 ENTRYPOINT ["/bin/bash", "/app/apps/backend/entrypoint.sh"]
