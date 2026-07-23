@@ -48,5 +48,6 @@ EXPOSE 9000
 
 WORKDIR /app/apps/backend
 
-# Run migrations and start Medusa backend server
-CMD ["sh", "-c", "pnpm db:migrate && pnpm start"]
+RUN chmod +x ./entrypoint.sh
+
+ENTRYPOINT ["/bin/sh", "/app/apps/backend/entrypoint.sh"]
