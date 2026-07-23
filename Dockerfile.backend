@@ -41,14 +41,9 @@ ENV NODE_ENV=production
 ENV PORT=9000
 ENV HOST=0.0.0.0
 
-# Copy workspace configuration & node_modules from builder
-COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml /app/turbo.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/backend ./apps/backend
+# Copy full monorepo context to preserve pnpm symlinks and workspace binaries
+COPY --from=builder /app ./
 
 EXPOSE 9000
 
-WORKDIR /app/apps/backend
-
-# Run migrations and start Medusa backend server
-CMD ["sh", "-c", "pnpm medusa db:migrate && pnpm start"]
+CMD ["sh", "-c", "pnpm --filter=@dtc/backend medusa db:migrate && pnpm --filter=@dtc/backend start"]
